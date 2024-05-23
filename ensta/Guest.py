@@ -9,6 +9,7 @@ from .lib.Exceptions import APIError, NetworkError, RateLimitedError
 from collections.abc import Generator
 from .containers.Post import Post
 from .containers.PostUser import PostUser
+from bs4 import BeautifulSoup
 
 
 class Guest:
@@ -495,3 +496,62 @@ class Guest:
             location_longitude=data.get("lng", 0),
             coauthors=coauthors,
         )
+
+    def fetch_post_stats(self, post_id: str, __session__: requests.Session | None = None) -> (int, int):
+        """
+        Fetches a specific post using the post ID.
+        :param post_id: The ID of the post to fetch
+        :param __session__: (Optional) Custom request session object
+        :return: The post's data as a Post object, or None if not found
+        """
+
+        request_headers = {
+            "accept": "*/*",
+            "accept-language": "en-US,en;q=0.9",
+            "sec-ch-prefers-color-scheme": self.preferred_color_scheme,
+            "sec-ch-ua": self.user_agent,
+            "sec-ch-ua-full-version-list": self.user_agent,
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-ch-ua-platform-version": "\"15.0.0\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-origin",
+            "viewport-width": "1475",
+            "x-asbd-id": "129477",
+            "x-csrftoken": self.csrf_token,
+            "x-ig-app-id": self.insta_app_id,
+            "x-ig-www-claim": self.x_ig_www_claim,
+            "x-requested-with": "XMLHttpRequest",
+            "Referer": f"https://www.instagram.com/p/{post_id}/",
+            "Referrer-Policy": "strict-origin-when-cross-origin"
+        }
+
+        session: requests.Session = __session__ or self.request_session
+
+        try:
+            http_response = session.get(
+                f"https://www.instagram.com/p/{post_id}/?__a=1",
+                headers=request_headers
+            )
+
+            soup = BeautifulSoup(http_response.text, 'html.parser')
+            meta_tag = soup.find('meta', property='og:description')
+            if not meta_tag or not meta_tag.get('content'):
+                return (-1, -1)
+            content = meta_tag['content']
+            likes, comments = self.__parse_likes_comments(content)
+            return (likes, comments)
+        except requests.RequestException as e:
+            raise NetworkError(f"Request failed: {e}")
+
+    def __parse_likes_comments(self, content: str) -> (int, int):
+        """
+        Parses the content string to extract likes and comments count.
+        :param content: The content string from the meta tag
+        :return: A tuple of likes and comments count
+        """
+        parts = content.split(' - ')[0].split(', ')
+        likes = int(parts[0].split(' ')[0])
+        comments = int(parts[1].split(' ')[0])
+        return likes, comments
