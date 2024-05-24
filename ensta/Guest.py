@@ -497,7 +497,7 @@ class Guest:
             coauthors=coauthors,
         )
 
-    def fetch_post_stats(self, post_id: str, __session__: requests.Session | None = None) -> (int, int):
+    def fetch_post_stats(self, post_id: str, is_post=True, __session__: requests.Session | None = None) -> (int, int):
         """
         Fetches a specific post using the post ID.
         :param post_id: The ID of the post to fetch
@@ -531,7 +531,7 @@ class Guest:
 
         try:
             http_response = session.get(
-                f"https://www.instagram.com/p/{post_id}/?__a=1",
+                f"https://www.instagram.com/p/{post_id}/?__a=1" if is_post else f"https://www.instagram.com/reel/{post_id}/?__a=1",
                 headers=request_headers
             )
 
