@@ -27,7 +27,6 @@ class Guest:
         self.x_ig_www_claim = "hmac." + "".join(random.choices(string.ascii_letters + string.digits + "_-", k=48))
         self.csrf_token = "".join(random.choices(string.ascii_letters + string.digits, k=32))
         self.request_session.cookies.set("csrftoken", self.csrf_token)
-
         if proxy is not None: self.request_session.proxies.update(proxy)
 
     def username_availability(self, username: str) -> bool | None:
@@ -552,6 +551,6 @@ class Guest:
         :return: A tuple of likes and comments count
         """
         parts = content.split(' - ')[0].split(', ')
-        likes = int(parts[0].split(' ')[0])
-        comments = int(parts[1].split(' ')[0])
+        likes = int(''.join(parts[0].split(' ')[0].split(',')))
+        comments = int(''.join(parts[1].split(' ')[0].split(',')))
         return likes, comments
